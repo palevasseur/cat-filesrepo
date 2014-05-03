@@ -1,10 +1,24 @@
 // ceramiques files: /volume1/photo/Catalogue des ceramiques
 // node src: /volume1/homes/admin/NodeProjects
 
-var http = require("http");
+//var http = require("http");
 var express = require('express');
-var app = express();
+var fs = require('fs');
+var url = require('url');
 var CatCeramiques = require('./models/CatCeramiques');
+
+var config = {
+    "dev": {
+        "photosDirectory": "../Ressources/PhotosLaBouille"
+    },
+    "ds211": {
+        "photosDirectory": "../../../../photo/Catalogue des ceramiques"
+    },
+    "default":"dev"
+};
+
+var photoDirectory = config[config.default].photosDirectory;
+var app = express();
 
 /*
 //CreateFilesList("../../../photo/Catalogue des ceramiques", function (list, nbrPhotos, nbrPhotosWihoutNum) {
@@ -40,15 +54,14 @@ CreateFilesList("../Ressources/PhotosLaBouille", function (list, stat) {
 });
 */
 
-//CreateFilesList("../../../photo/Catalogue des ceramiques", function (list, nbrPhotos, nbrPhotosWihoutNum) {
-CatCeramiques.CreateFilesList("../Ressources/PhotosLaBouille", function (list, stat) {
+CatCeramiques.CreateFilesList(photoDirectory, function (list, stat) {
     var listJSON = JSON.stringify(list);
     var statJSON = JSON.stringify(stat);
     console.log("Ceramics catalogue has "+stat.NbrPhotos+" photos (missing piece number for "+stat.NbrPhotosWihoutNum+" photos)");
     console.log("Server listening on port 8001 ...");
 
     app.get('/', function(request, response) {
-        response.write("<p>Usage<br>- list: http://server:8001/list<br>- statistics: http://server:8001/stat</p>");
+        response.write("<p>Usage<br>- list: http://&lt;server&gt;/list<br>- statistics: http://&lt;server&gt;/stat<br>- repository: http://&lt;server&gt;/repo?img=&lt;image name&gt;</p>");
         response.end();
     });
 
@@ -64,6 +77,31 @@ CatCeramiques.CreateFilesList("../Ressources/PhotosLaBouille", function (list, s
         response.writeHead(200, {"Content-Type": "application/json"});
         response.write(statJSON);
         response.end();
+    });
+
+    app.get('/repo', function(request, response) {
+        var req = url.parse(request.url, true);
+        if(req.query.img) {
+            try {
+                var file = fs.readFileSync(photoDirectory + "/" + req.query.img);
+                response.setHeader('Access-Control-Allow-Origin', '*'); // better to set: http://localhost:8000
+                response.writeHead(200, {"Content-Type": "image/jpg"});
+                response.write(file);
+                response.end();
+            }
+            catch(e) {
+                // todo: add info error = image not found
+                response.setHeader('Access-Control-Allow-Origin', '*'); // better to set: http://localhost:8000
+                response.writeHead(404, {"Content-Type": "image/jpg"});
+                response.end();
+            }
+        }
+        else {
+            // todo: add info error = bad param
+            response.setHeader('Access-Control-Allow-Origin', '*'); // better to set: http://localhost:8000
+            response.writeHead(404, {"Content-Type": "image/jpg"});
+            response.end();
+        }
     });
 
     app.listen(8001);
