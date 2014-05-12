@@ -2,8 +2,8 @@
 
 import express = require('express');
 import q = require('q');
-import FilesHelper = require('./models/fileshelper');
-import Config = require('./models/Config')
+import FilesHelper = require('./src/fileshelper');
+import Config = require('./src/config')
 
 var app = express();
 var config : any = new Config();
