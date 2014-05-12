@@ -1,0 +1,9 @@
+{
+    "current": "pc",
+    "pc": {
+        "photosDirectory": "../Ressources/PhotosLaBouille"
+    },
+    "ds211": {
+        "photosDirectory": "../../../../photo/Catalogue des ceramiques"
+    }
+}
