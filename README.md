@@ -5,6 +5,6 @@ on ds211:
 // node src: /volume1/homes/admin/NodeProjects
 =============
 deploy:
-1/ create dist (grunt)
-2/ copy on server + npm install
-3/ change config.json (current=ds211) + node filesrepo.js
+1/ create dist (grunt deploy task)
+2/ copy on server + [npm install --production]
+3/ change config.json (current=ds211) + [node filesrepo.js]
