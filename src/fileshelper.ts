@@ -17,54 +17,57 @@ module FilesHelper {
             stat.NbrPhotosWihoutNum = 0;
 
             var list = new Array();
-            var previousRef = "";
             for (var i = 0; i < files.length; i++) {
-                var elem:any = new Object();
-                var firstWord = ((files[i]).split(" ", 1)).toString();
-                if (firstWord == "" || firstWord == "-") {
-                    firstWord = "Photo sans Numéro de pièce";
-                    stat.NbrPhotosWihoutNum++;
-                }
-                elem.refPiece = firstWord;
-                elem.listPhotos = new Array();
-                var elemPhoto:any = new Object();
-                elemPhoto.nomFichier = files[i];
-                elemPhoto.url = "url" + files[i];
-                elem.listPhotos.push(elemPhoto);
-
                 var strExt = files[i].substring(files[i].lastIndexOf("."));
                 if (strExt.toLowerCase() == ".jpg") {
-                    list.push(elem);
-                    stat.NbrPhotos++;
+
+                    // extract list of ref pieces for this photo
+                    var piecesNum = ((files[i]).split('-', 1)).toString().trim();
+                    var piecesNumList = null;
+                    if (piecesNum.length==0) {
+                        piecesNumList = new Array();
+                        piecesNumList.push("Photo sans Numéro de pièce");
+                        stat.NbrPhotosWihoutNum++;
+                    }
+                    else {
+                        piecesNumList = piecesNum.split(' ');
+                    }
+
+                    // add each ref piece in the list
+                    piecesNumList.forEach(piece => {
+                        // check not empty because of .split(' ') can generate empty
+                        if(piece.length>0) {
+                            // find if elem already exist
+                            var elem:any = null;
+                            for (var j = 0; j < list.length; j++) {
+                                if(list[j].refPiece==piece) {
+                                    elem = list[j];
+                                    break;
+                                }
+                            }
+
+                            if(elem==null) {
+                                elem = new Object();
+                                elem.refPiece = piece;
+                                elem.listPhotos = new Array();
+                                list.push(elem);
+                            }
+
+                            var elemPhoto:any = new Object();
+                            elemPhoto.nomFichier = files[i];
+                            elem.listPhotos.push(elemPhoto);
+
+                            stat.NbrPhotos++;
+                        }
+                    });
                 }
                 else {
                     console.log("skip the file " + i + ": " + files[i]);
                 }
             }
 
-            // concat elem with same refPiece
-            var list2 = new Array();
-            if (list.length > 0) {
-                // add the first elem
-                var j = 0;
-                list2.push(list[j]);
-                j++;
-
-                // add or concat the others elems
-                while (j < list.length) {
-                    if (list[j].refPiece == list[j - 1].refPiece) {
-                        list2[list2.length - 1].listPhotos.push(list[j].listPhotos[0]);
-                    }
-                    else {
-                        list2.push(list[j]);
-                    }
-                    j++;
-                }
-
-            }
-
             // natural sort
-            list2.sort(function (a, b) {
+            list.sort(function (a, b) {
                 var bAHasN = false;
                 if (a.refPiece.length > 0 && (a.refPiece[0] == 'N' || a.refPiece[0] == 'n')) {
                     bAHasN = true;
@@ -87,9 +90,9 @@ module FilesHelper {
                 }
             });
 
-            stat.NbrPieces = list2.length;
+            stat.NbrPieces = list.length;
 
-            cb(list2, stat); // stringify here to avoid to do it each request
+            cb(list, stat);
         });
     }
 

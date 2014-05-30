@@ -8,7 +8,6 @@ class Config {
             this[name] = currentConfig[name];
         }
     }
-
 }
 
 export = Config;
