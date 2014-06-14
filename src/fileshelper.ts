@@ -104,6 +104,83 @@ module FilesHelper {
         }
     }
 
+    function createStats(imgs, updates, fails) {
+        return {
+            'nbrImgs':imgs,
+            'nbrThumbsUpdates':updates,
+            'nbrThumbsUpdatesFails':fails
+        }
+    }
+
+    export function UpdateRepo(photoDirectory : string) {
+        var qres = Q.defer();
+        try {
+            fs.readdir(photoDirectory, (err, imgs) => {
+                if(err) {
+                    qres.reject("fail to read the img dir "+photoDirectory);
+                    return;
+                }
+
+                var nbrImgs = 0;
+                var nbrUpdates = 0;
+                var nbrFails = 0;
+                var pending = imgs.length;
+                if(!pending) {
+                    qres.resolve(createStats(nbrImgs, nbrUpdates, nbrFails));
+                }
+
+                imgs.forEach(img => {
+                    if(!(/\.jpg$/i).test(img)) {
+                        if(!--pending) {
+                            qres.resolve(createStats(nbrImgs, nbrUpdates, nbrFails));
+                        }
+                    }
+                    else {
+                        nbrImgs++;
+                        var imgSrc = photoDirectory + "/" + img;
+                        var imgThumb = photoDirectory + "/thumbs/" + img;
+
+                        fs.readFile(imgThumb, function (err, file) {
+                            if (!err) {
+                                if(!--pending) {
+                                    qres.resolve(createStats(nbrImgs, nbrUpdates, nbrFails));
+                                }
+                            }
+                            else {
+                                im.resize({
+                                    srcPath: imgSrc,
+                                    dstPath: imgThumb,
+                                    width: 64
+                                }, function (err, stdout, stderr) {
+                                    if (err) {
+                                        nbrFails++;
+                                        console.log("imagemagick/resize return err = '" + err + "', failed to create thumb for '" + img + "'");
+                                        if(!--pending) {
+                                            qres.resolve(createStats(nbrImgs, nbrUpdates, nbrFails));
+                                        }
+                                    }
+                                    else {
+                                        nbrUpdates++;
+                                        console.log("created thumb for '" + img + "'");
+                                        if(!--pending) {
+                                            qres.resolve(createStats(nbrImgs, nbrUpdates, nbrFails));
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+
+            });
+        }
+        catch(e) {
+            qres.reject("error during processing update of the directory '" + photoDirectory + "' : " + e);
+        }
+
+        return qres.promise;
+    }
+
     export function GetThumb(reqUrl:string, photoDirectory:string):Q.IPromise<any> {
         var qres = Q.defer();
 

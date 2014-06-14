@@ -48,7 +48,21 @@ FilesHelper.CreateFilesList(config.photosDirectory, function (list, stat) {
             response.write(err);
             response.end();
         });
+    });
 
+    app.get('/update', function(request, response) {
+        var upd = FilesHelper.UpdateRepo(config.photosDirectory);
+        upd.then(stat => {
+            response.setHeader('Access-Control-Allow-Origin', '*'); // better to set: http://localhost:8000
+            response.writeHead(200, {"Content-Type": "application/json"});
+            response.write(JSON.stringify(stat));
+            response.end();
+        }, err => {
+            response.setHeader('Access-Control-Allow-Origin', '*'); // better to set: http://localhost:8000
+            response.writeHead(404, {"Content-Type": "text/html"});
+            response.write(err);
+            response.end();
+        });
     });
 
     app.listen(8001);
