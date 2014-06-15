@@ -50,8 +50,11 @@ FilesHelper.CreateFilesList(config.photosDirectory, function (list, stat) {
         });
     });
 
+    var updateStatus = {
+        updating: false
+    };
     app.get('/update', function(request, response) {
-        var upd = FilesHelper.UpdateRepo(config.photosDirectory);
+        var upd = FilesHelper.UpdateRepo(config.photosDirectory, updateStatus);
         upd.then(stat => {
             response.setHeader('Access-Control-Allow-Origin', '*'); // better to set: http://localhost:8000
             response.writeHead(200, {"Content-Type": "application/json"});

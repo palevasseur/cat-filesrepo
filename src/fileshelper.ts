@@ -104,16 +104,22 @@ module FilesHelper {
         }
     }
 
-    function createStats(imgs, updates, fails) {
+    function createStats(imgs, updates) {
         return {
             'nbrImgs':imgs,
-            'nbrThumbsUpdates':updates,
-            'nbrThumbsUpdatesFails':fails
+            'nbrThumbsUpdates':updates
         }
     }
 
-    export function UpdateRepo(photoDirectory : string) {
+    export function UpdateRepo(photoDirectory : string, updateStatus : {updating:boolean}) {
         var qres = Q.defer();
+        if(updateStatus.updating) {
+            console.log('UpdateRepo called but updating already in progress !');
+            return Q.reject('updating already in progress...');
+        }
+        updateStatus.updating = true;
+
+        var thumbsDirectory = photoDirectory + "/thumbs";
         try {
             fs.readdir(photoDirectory, (err, imgs) => {
                 if(err) {
@@ -121,57 +127,49 @@ module FilesHelper {
                     return;
                 }
 
+                var thumbsFiles = fs.readdirSync(thumbsDirectory);
                 var nbrImgs = 0;
-                var nbrUpdates = 0;
-                var nbrFails = 0;
-                var pending = imgs.length;
-                if(!pending) {
-                    qres.resolve(createStats(nbrImgs, nbrUpdates, nbrFails));
-                }
-
-                imgs.forEach(img => {
-                    if(!(/\.jpg$/i).test(img)) {
-                        if(!--pending) {
-                            qres.resolve(createStats(nbrImgs, nbrUpdates, nbrFails));
-                        }
-                    }
-                    else {
+                var createthumbs = [];
+                imgs.forEach((img,index) => {
+                    if ((/\.jpg$/i).test(img)) {
                         nbrImgs++;
                         var imgSrc = photoDirectory + "/" + img;
-                        var imgThumb = photoDirectory + "/thumbs/" + img;
-
-                        fs.readFile(imgThumb, function (err, file) {
-                            if (!err) {
-                                if(!--pending) {
-                                    qres.resolve(createStats(nbrImgs, nbrUpdates, nbrFails));
-                                }
-                            }
-                            else {
-                                im.resize({
+                        var imgThumb = thumbsDirectory + "/" + img;
+                        if (thumbsFiles.indexOf(img) == -1) {
+                            console.log('index:'+index+' add thumb to create "' + imgThumb + '" from "' + imgSrc + '"');
+                            createthumbs.push(function() {
+                                return Q.nfcall(im.resize, {
                                     srcPath: imgSrc,
                                     dstPath: imgThumb,
                                     width: 64
-                                }, function (err, stdout, stderr) {
-                                    if (err) {
-                                        nbrFails++;
-                                        console.log("imagemagick/resize return err = '" + err + "', failed to create thumb for '" + img + "'");
-                                        if(!--pending) {
-                                            qres.resolve(createStats(nbrImgs, nbrUpdates, nbrFails));
-                                        }
-                                    }
-                                    else {
-                                        nbrUpdates++;
-                                        console.log("created thumb for '" + img + "'");
-                                        if(!--pending) {
-                                            qres.resolve(createStats(nbrImgs, nbrUpdates, nbrFails));
-                                        }
-                                    }
                                 });
-                            }
-                        });
+                            });
+
+                        }
                     }
                 });
 
+                var nbrUpdates = createthumbs.length;
+                // create the ending fct
+                createthumbs.push(function() {
+                    console.log("createthumb terminated");
+                    updateStatus.updating = false;
+                    return qres.resolve(createStats(nbrImgs, nbrUpdates));
+                });
+
+                var result = null;
+                createthumbs.forEach( (createthumb, i) => {
+                    if(i==0) {
+                        console.log('launch createthumb ' + i);
+                        result = createthumb();
+                    }
+                    else {
+                        result = result.then(_ => {
+                            console.log('launch createthumb ' + i);
+                            return createthumb();
+                        });
+                    }
+                });
             });
         }
         catch(e) {
@@ -192,6 +190,7 @@ module FilesHelper {
 
                 fs.readFile(imgThumb, function (err, file){
                     if(err) {
+                        console.log('creating thumb "' + imgThumb + '" from "' + imgSrc + '"');
                         im.resize({
                             srcPath: imgSrc,
                             dstPath: imgThumb,
