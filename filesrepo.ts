@@ -44,25 +44,30 @@ FilesHelper.CreateFilesList(config.photosDirectory, function (list, stat) {
             response.end();
         }, err => {
             response.setHeader('Access-Control-Allow-Origin', '*'); // better to set: http://localhost:8000
-            response.writeHead(404, {"Content-Type": "text/html"});
+            response.writeHead(504, {"Content-Type": "text/html"});
             response.write(err);
             response.end();
         });
     });
 
-    var updateStatus = {
-        updating: false
-    };
+    var updateStatus = { updating: false };
     app.get('/update', function(request, response) {
         var upd = FilesHelper.UpdateRepo(config.photosDirectory, updateStatus);
-        upd.then(stat => {
-            response.setHeader('Access-Control-Allow-Origin', '*'); // better to set: http://localhost:8000
-            response.writeHead(200, {"Content-Type": "application/json"});
-            response.write(JSON.stringify(stat));
-            response.end();
+        upd.then(statUpd => {
+            FilesHelper.CreateFilesList(config.photosDirectory, function (list, stat) {
+                listJSON = JSON.stringify(list);
+                statJSON = JSON.stringify(stat);
+                console.log("Update terminated.");
+                console.log("Ceramics catalogue has " + stat.NbrPhotos + " photos (missing piece number for " + stat.NbrPhotosWihoutNum + " photos)");
+
+                response.setHeader('Access-Control-Allow-Origin', '*'); // better to set: http://localhost:8000
+                response.writeHead(200, {"Content-Type": "application/json"});
+                response.write(JSON.stringify(statUpd));
+                response.end();
+            });
         }, err => {
             response.setHeader('Access-Control-Allow-Origin', '*'); // better to set: http://localhost:8000
-            response.writeHead(404, {"Content-Type": "text/html"});
+            response.writeHead(504, {"Content-Type": "text/html"});
             response.write(err);
             response.end();
         });

@@ -3,6 +3,8 @@
 import fs = require('fs');
 import Q = require('q');
 import url = require('url');
+import Utils = require('./utils');
+
 var im = require('imagemagick');
 
 module FilesHelper {
@@ -11,18 +13,21 @@ module FilesHelper {
         fs.readdir(pathDir, function (err, files) {
             if (err) throw err;
 
-            var stat:any = new Object();
-            stat.NbrPieces = 0;
-            stat.NbrPhotos = 0;
-            stat.NbrPhotosWihoutNum = 0;
+            var stat = {
+                NbrPieces:0,
+                NbrPhotos:0,
+                NbrPhotosWihoutNum:0
+           };
 
             var list = new Array();
             for (var i = 0; i < files.length; i++) {
                 var strExt = files[i].substring(files[i].lastIndexOf("."));
                 if (strExt.toLowerCase() == ".jpg") {
+                    stat.NbrPhotos++;
 
                     // extract list of ref pieces for this photo
-                    var piecesNum = ((files[i]).split('-', 1)).toString().trim();
+                    var ownerName = '';
+                    var piecesNum = ((files[i]).split('- ', 1)).toString().trim();
                     var piecesNumList = null;
                     if (piecesNum.length==0) {
                         piecesNumList = new Array();
@@ -30,25 +35,50 @@ module FilesHelper {
                         stat.NbrPhotosWihoutNum++;
                     }
                     else {
-                        piecesNumList = piecesNum.split(' ');
+                        // match "Nxxx Nyyy"
+                        piecesNumList = piecesNum.match(/N\d+/g);
+                        if(!piecesNumList) {
+                            // nothing match => only has the owner name
+                            piecesNumList = new Array();
+                            if(piecesNum.match(/^\d+$/)) {
+                                // is a number => missing the N
+                                console.log('Missing the N before the number for the file "' + files[i] + '"');
+                                piecesNum = 'N' + piecesNum;
+                            }
+                            piecesNumList.push(piecesNum);
+                        }
+                        else
+                        {
+                            // found some match "Nxxx Nyyy" => check if owner name exist
+                            ownerName = piecesNum.split(piecesNumList[0])[0].trim();
+                        }
                     }
 
                     // add each ref piece in the list
                     piecesNumList.forEach(piece => {
                         // check not empty because of .split(' ') can generate empty
                         if(piece.length>0) {
+                            var pieceWithOwnerName = '';
+                            if(ownerName) {
+                                pieceWithOwnerName = ownerName + ' ' + piece;
+                            }
+                            else {
+                                pieceWithOwnerName = piece;
+                            }
+
                             // find if elem already exist
                             var elem:any = null;
                             for (var j = 0; j < list.length; j++) {
-                                if(list[j].refPiece==piece) {
+                                if(list[j].refPiece==pieceWithOwnerName) {
                                     elem = list[j];
                                     break;
                                 }
                             }
 
                             if(elem==null) {
+                                stat.NbrPieces++;
                                 elem = new Object();
-                                elem.refPiece = piece;
+                                elem.refPiece = pieceWithOwnerName;
                                 elem.listPhotos = new Array();
                                 list.push(elem);
                             }
@@ -56,8 +86,6 @@ module FilesHelper {
                             var elemPhoto:any = new Object();
                             elemPhoto.nomFichier = files[i];
                             elem.listPhotos.push(elemPhoto);
-
-                            stat.NbrPhotos++;
                         }
                     });
                 }
@@ -67,30 +95,7 @@ module FilesHelper {
             }
 
             // natural sort
-            list.sort(function (a, b) {
-                var bAHasN = false;
-                if (a.refPiece.length > 0 && (a.refPiece[0] == 'N' || a.refPiece[0] == 'n')) {
-                    bAHasN = true;
-                }
-
-                var bBHasN = false;
-                if (b.refPiece.length > 0 && (b.refPiece[0] == 'N' || b.refPiece[0] == 'n')) {
-                    bBHasN = true;
-                }
-
-                if (bAHasN && bBHasN) {
-                    return  parseInt(a.refPiece.substring(1), 10) - parseInt(b.refPiece.substring(1), 10);
-                }
-                else {
-                    if (bAHasN)
-                        return 0 - parseInt(a.refPiece.substring(1), 10);
-                    if (bBHasN)
-                        return parseInt(b.refPiece.substring(1), 10) - 0;
-                    return 0;
-                }
-            });
-
-            stat.NbrPieces = list.length;
+            list.sort(Utils.NumPieceNaturalSort);
 
             cb(list, stat);
         });
