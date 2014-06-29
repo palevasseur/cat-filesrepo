@@ -11,11 +11,6 @@ module.exports = function (grunt) {
             fullDist: __dirname + '\\dist\\'
         },
 
-        availabletasks: {
-            tasks: {
-            }
-        },
-
         clean: {
             dist: ['dist']
         },
@@ -54,16 +49,30 @@ module.exports = function (grunt) {
             dev: {
                 src: ['src/**/*.ts', 'filesrepo.ts']
             }
+        },
+
+        shell: {                                // Task
+            listFolders: {                      // Target
+                options: {                      // Options
+                    stderr: false
+                },
+                command: 'ls'
+            },
+            copy_dist2DS: {
+                options: {
+                    stdout: true
+                },
+                command: 'powershell tasks/copy_dist2DS.ps1'
+            }
         }
+
     });
 
-    // Default task
-    grunt.registerTask('default', ['availabletasks:tasks']);
-
     // deploy
-    grunt.registerTask('deploy', 'Compile and create dist folder', [
+    grunt.registerTask('deploy2DS', 'Compile, create dist folder, npm inst and copy to DS', [
         'ts:dev',
         'clean:dist',
-        'copy:dist'
+        'copy:dist',
+        'shell:copy_dist2DS'
     ]);
 };

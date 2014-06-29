@@ -19,7 +19,8 @@ module FilesHelper {
                 NbrPhotosWihoutNum:0
            };
 
-            var list = new Array();
+            var list = [];
+            var photosWihoutNum = [];
             for (var i = 0; i < files.length; i++) {
                 var strExt = files[i].substring(files[i].lastIndexOf("."));
                 if (strExt.toLowerCase() == ".jpg") {
@@ -30,8 +31,9 @@ module FilesHelper {
                     var piecesNum = ((files[i]).split('- ', 1)).toString().trim();
                     var piecesNumList = null;
                     if (piecesNum.length==0) {
-                        piecesNumList = new Array();
+                        piecesNumList = [];
                         piecesNumList.push("Photo sans Numéro de pièce");
+                        photosWihoutNum.push(files[i]);
                         stat.NbrPhotosWihoutNum++;
                     }
                     else {
@@ -39,7 +41,7 @@ module FilesHelper {
                         piecesNumList = piecesNum.match(/N\d+/g);
                         if(!piecesNumList) {
                             // nothing match => only has the owner name
-                            piecesNumList = new Array();
+                            piecesNumList = [];
                             if(piecesNum.match(/^\d+$/)) {
                                 // is a number => missing the N
                                 console.log('Missing the N before the number for the file "' + files[i] + '"');
@@ -96,6 +98,15 @@ module FilesHelper {
 
             // natural sort
             list.sort(Utils.NumPieceNaturalSort);
+
+            // check duplicated with photo without name
+            photosWihoutNum.forEach(photoWithoutName => {
+                files.forEach(photo => {
+                    if(photo.indexOf(photoWithoutName)>0) {
+                        console.log("Find duplicate photo '" + photoWithoutName + '" with "' + photo + '"');
+                    }
+                });
+            });
 
             cb(list, stat);
         });
