@@ -12,7 +12,15 @@ module.exports = function (grunt) {
         },
 
         clean: {
-            dist: ['dist']
+            dist: ['dist'],
+            out: [
+                '.tscache',
+                '**/*.js',
+                '**/*.js.map',
+                '!Gruntfile.js',
+                '!node_modules/**/*',
+                '!tasks/**/*'
+            ]
         },
 
         copy: {
