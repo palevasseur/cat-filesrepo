@@ -1,12 +1,15 @@
 {
     "current": "pc",
     "test": {
-        "photosDirectory": "../Ressources/PhotosLaBouille"
+        "photosDirectory": "../Ressources/PhotosLaBouille",
+        "thumbsDirectory": "../Ressources/thumbs"
     },
     "pc": {
-        "photosDirectory": "../Ressources/Catalogue des ceramiques"
+        "photosDirectory": "../Ressources/Catalogue des ceramiques",
+        "thumbsDirectory": "../Ressources/thumbs"
     },
-    "ds211": {
-        "photosDirectory": "../../../../photo/Catalogue des ceramiques"
+    "ds715": {
+        "photosDirectory": "/volume1/photo/Catalogue des ceramiques",
+        "thumbsDirectory": "/volume1/homes/paul/NodeProjects/cat-filesrepo/ressources/thumbs"
     }
 }

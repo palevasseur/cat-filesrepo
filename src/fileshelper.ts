@@ -112,11 +112,10 @@ module FilesHelper {
         });
     }
 
-    export function CreateThumbsDir(photoDirectory:string) {
-        var dirThumb = photoDirectory + "/thumbs/";
-        if(!fs.existsSync(dirThumb)) {
-            fs.mkdirSync(dirThumb);
-            console.log("created directory '" + dirThumb + "'");
+    export function CreateThumbsDir(thumbsDirectory:string) {
+        if(!fs.existsSync(thumbsDirectory)) {
+            fs.mkdirSync(thumbsDirectory);
+            console.log("created directory '" + thumbsDirectory + "'");
         }
     }
 
@@ -127,7 +126,7 @@ module FilesHelper {
         }
     }
 
-    export function UpdateRepo(photoDirectory : string, updateStatus : {updating:boolean}) {
+    export function UpdateRepo(photoDirectory : string, thumbsDirectory : string, updateStatus : {updating:boolean}) {
         var qres = Q.defer();
         if(updateStatus.updating) {
             console.log('UpdateRepo called but updating already in progress !');
@@ -135,7 +134,6 @@ module FilesHelper {
         }
         updateStatus.updating = true;
 
-        var thumbsDirectory = photoDirectory + "/thumbs";
         try {
             fs.readdir(photoDirectory, (err, imgs) => {
                 if(err) {
@@ -157,7 +155,8 @@ module FilesHelper {
                                 return Q.nfcall(im.resize, {
                                     srcPath: imgSrc,
                                     dstPath: imgThumb,
-                                    width: 64
+                                    width: 64,
+                                    quality: 0.7
                                 });
                             });
 
@@ -195,14 +194,14 @@ module FilesHelper {
         return qres.promise;
     }
 
-    export function GetThumb(reqUrl:string, photoDirectory:string):Q.IPromise<any> {
+    export function GetThumb(reqUrl:string, photoDirectory:string, thumbsDirectory:string):Q.IPromise<any> {
         var qres = Q.defer();
 
         var req:any = url.parse(reqUrl, true);
         if(req.query.img) {
             try {
                 var imgSrc = photoDirectory + "/" + req.query.img;
-                var imgThumb = photoDirectory + "/thumbs/" + req.query.img;
+                var imgThumb = thumbsDirectory + "/" + req.query.img;
 
                 fs.readFile(imgThumb, function (err, file){
                     if(err) {
@@ -210,7 +209,8 @@ module FilesHelper {
                         im.resize({
                             srcPath: imgSrc,
                             dstPath: imgThumb,
-                            width:   64
+                            width:   64,
+                            quality: 0.7
                         }, function(err, stdout, stderr){
                             if (err) {
                                 qres.reject("imagemagick/resize return err = '" + err + "', failed to create thumb for '" + req.query.img + "'");

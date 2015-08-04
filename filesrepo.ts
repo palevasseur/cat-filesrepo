@@ -14,10 +14,10 @@ FilesHelper.CreateFilesList(config.photosDirectory, function (list, stat) {
     console.log("Ceramics catalogue has "+stat.NbrPhotos+" photos (missing piece number for "+stat.NbrPhotosWihoutNum+" photos)");
     console.log("Server listening on port 8001 ...");
 
-    FilesHelper.CreateThumbsDir(config.photosDirectory);
+    FilesHelper.CreateThumbsDir(config.thumbsDirectory);
 
     app.get('/', function(request, response) {
-        response.write("<p>Usage<br>- list: http://&lt;server&gt;/list<br>- statistics: http://&lt;server&gt;/stat<br>- repository: http://&lt;server&gt;/repo?img=&lt;image name&gt;</p>");
+        response.write("<p>Usage<br>- list: http://&lt;server&gt;/list<br>- statistics: http://&lt;server&gt;/stat<br>- repository: http://&lt;server&gt;/repo?img=&lt;image name&gt;<br>- update (generate all thumbs if needed): http://&lt;server&gt;/update</p>");
         response.end();
     });
 
@@ -36,7 +36,7 @@ FilesHelper.CreateFilesList(config.photosDirectory, function (list, stat) {
     });
 
     app.get('/repo', function(request, response) {
-        var thumb = FilesHelper.GetThumb(request.url, config.photosDirectory);
+        var thumb = FilesHelper.GetThumb(request.url, config.photosDirectory, config.thumbsDirectory);
         thumb.then(file => {
             response.setHeader('Access-Control-Allow-Origin', '*'); // better to set: http://localhost:8000
             response.writeHead(200, {"Content-Type": "image/jpg"});
@@ -52,7 +52,7 @@ FilesHelper.CreateFilesList(config.photosDirectory, function (list, stat) {
 
     var updateStatus = { updating: false };
     app.get('/update', function(request, response) {
-        var upd = FilesHelper.UpdateRepo(config.photosDirectory, updateStatus);
+        var upd = FilesHelper.UpdateRepo(config.photosDirectory, config.thumbsDirectory, updateStatus);
         upd.then(statUpd => {
             FilesHelper.CreateFilesList(config.photosDirectory, function (list, stat) {
                 listJSON = JSON.stringify(list);
